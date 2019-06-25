@@ -1,0 +1,7 @@
+#!/usr/bin/env ruby
+
+require 'bundler/setup'
+require 'nested_record'
+
+require "pry"
+Pry.start

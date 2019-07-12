@@ -22,7 +22,73 @@ Or install it yourself as:
 
 ## Usage
 
-TODO: Write usage instructions here
+Use `nested_record` to define nested associations on `ActiveRecord` models via JSON attributes.
+
+First add `json` column into your database:
+
+```ruby
+change_table :users do |t|
+  t.json :profile
+end
+```
+
+Then define association using `has_one_nested` macros
+
+```ruby
+class User < ActiveRecord::Base
+  has_one_nested :profile
+end
+```
+
+Define nested record attributes using `ActiveModel::Attributes` API (since Rails 5.2)
+
+```ruby
+class Profile < NestedRecord::Base
+  attribute :age,    :integer
+  attribute :active, :boolean
+  has_one_nested :contacts
+end
+```
+
+You can go deeper and define models on the next nesting level:
+
+```ruby
+class Profile::Contacts < NestedRecord::Base
+  attribute :email, :string
+  attribute :phone, :string
+  has_many_nested :socials
+end
+```
+
+`has_many_nested` is also available (note that class namespace for association can be the same level)
+
+
+```ruby
+class Profile::Socials < NestedRecord::Base
+  attribute :name
+  attribute :url
+end
+```
+
+Then accessors are enabled!
+
+```ruby
+user.profile.age = 39
+user.profile.contacts.email = 'john@doe.com'
+user.profile.contacts.socials[0].name # => 'facebook'
+```
+
+Also you can assign attributes in the way like `accepts_nested_attributes_for` macros provides for AR models:
+
+```ruby
+user.profile_attributes = {
+  age: 39,
+  contacts_attributes: {
+    email: 'john@doe.com'
+  }
+}
+
+```
 
 ## Development
 

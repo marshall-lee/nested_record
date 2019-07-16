@@ -37,6 +37,22 @@ RSpec.describe NestedRecord do
       end
     end
 
+    context 'with plural model name' do
+      nested_model(:Points) do
+        attribute :x, :string
+        attribute :y, :integer
+        attribute :z, :boolean
+      end
+
+      active_model(:Foo) do
+        has_one_nested :points
+      end
+
+      it 'properly locates the model class' do
+        expect(Foo.new.build_points).to be_an_instance_of(Points)
+      end
+    end
+
     describe 'writer' do
       it 'is defined' do
         foo = Foo.new

@@ -4,7 +4,12 @@ class NestedRecord::Setup
   def initialize(owner, name, **options, &extension)
     @options = options
     @owner = owner
-    @record_class = options[:class_name] || name.to_s.classify
+    if options[:class_name]
+      @record_class = options[:class_name]
+    else
+      @record_class = name.to_s.camelize
+      @record_class = @record_class.singularize if self.is_a?(HasMany)
+    end
     @name = name
     @extension = extension
 

@@ -63,6 +63,10 @@ class NestedRecord::Collection
     @ary.length
   end
 
+  def size
+    @ary.size
+  end
+
   def select!
     return to_enum(:select!) unless block_given?
     @ary.select!(&proc)
@@ -72,6 +76,12 @@ class NestedRecord::Collection
   def reject!
     return to_enum(:reject!) unless block_given?
     @ary.reject!(&proc)
+    self
+  end
+
+  def sort_by!
+    return to_enum(:sort_by!) unless block_given?
+    @ary.sort_by!(&proc)
     self
   end
 

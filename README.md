@@ -1,6 +1,6 @@
 # NestedRecord
 
-This gem allows to map json fields on `ActiveModel` objects!
+This gem is for mapping of json fields on `ActiveModel` objects!
 
 ## Installation
 
@@ -110,7 +110,7 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/[USERNAME]/nested_record.
+Bug reports and pull requests are welcome on GitHub at https://github.com/marshall-lee/nested_record.
 
 ## License
 

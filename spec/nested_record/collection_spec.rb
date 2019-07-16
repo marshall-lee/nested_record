@@ -25,13 +25,24 @@ RSpec.describe NestedRecord::Collection do
     end
   end
 
-  describe 'sort_by!' do
+  describe '#sort_by!' do
     it 'sorts collection' do
       collection << Foo.new(id: 2)
       collection << Foo.new(id: 1)
 
       collection.sort_by!(&:id)
       expect(collection.map(&:id)).to eq [1, 2]
+    end
+  end
+
+  describe '#size' do
+    it 'works' do
+      expect(collection.size).to eq 0
+
+      collection << Foo.new(id: 2)
+      collection << Foo.new(id: 1)
+
+      expect(collection.size).to eq 2
     end
   end
 end

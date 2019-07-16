@@ -63,6 +63,10 @@ class NestedRecord::Collection
     @ary.length
   end
 
+  def size
+    @ary.size
+  end
+
   def select!
     return to_enum(:select!) unless block_given?
     @ary.select!(&proc)

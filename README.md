@@ -68,38 +68,41 @@ You can go deeper and define models on the next nesting level:
 class Profile::Contacts < NestedRecord::Base
   attribute :email, :string
   attribute :phone, :string
-  has_many_nested :socials
 end
 ```
 
-`has_many_nested` is also available (note that class namespace for association can be the same level).
-
+You can store **a collection** of objects with `has_many_nested`:
 
 ```ruby
-class Profile::Socials < NestedRecord::Base
+class Profile::Contacts < NestedRecord::Base
+  attribute :email, :string
+  attribute :phone, :string
+  has_many_nested :socials
+end
+
+class Profile::Social < NestedRecord::Base
   attribute :name
   attribute :url
 end
-```
 
-Then accessors are enabled!
-
-```ruby
 user.profile.age = 39
 user.profile.contacts.email = 'john@doe.com'
 user.profile.contacts.socials[0].name # => 'facebook'
 ```
 
-Also you can assign attributes in the way like `accepts_nested_attributes_for` macros provides for AR models:
+You can assign attributes in the way like `accepts_nested_attributes_for` macros provides for AR models:
 
 ```ruby
 user.profile_attributes = {
   age: 39,
   contacts_attributes: {
-    email: 'john@doe.com'
+    email: 'john@doe.com',
+    socials_attributes: [
+      { name: 'facebook', url: 'facebook.example.com/johndoe' },
+      { name: 'twitter', url: 'twitter.example.com/johndoe' }
+    ]
   }
 }
-
 ```
 
 ## Development

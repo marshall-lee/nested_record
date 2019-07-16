@@ -75,6 +75,12 @@ class NestedRecord::Collection
     self
   end
 
+  def sort_by!
+    return to_enum(:sort_by!) unless block_given?
+    @ary.sort_by!(&proc)
+    self
+  end
+
   def reject_by!(attrs)
     return to_enum(:reject_by!) unless block_given?
     attrs = attrs.stringify_keys

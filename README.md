@@ -32,15 +32,29 @@ change_table :users do |t|
 end
 ```
 
-Then define association using `has_one_nested` macros
+Then define association using `has_one_nested` macro:
 
 ```ruby
 class User < ActiveRecord::Base
+  include NestedRecord::Macro
+
   has_one_nested :profile
 end
 ```
 
-Define nested record attributes using `ActiveModel::Attributes` API (since Rails 5.2)
+Or you can include the `Macro` globally:
+
+```ruby
+class ApplicationRecord < ActiveRecord::Base
+  include NestedRecord::Macro
+end
+
+class User < ApplicationRecord
+  has_one_nested :profile
+end
+```
+
+Define nested record attributes using `ActiveModel::Attributes` API (since Rails 5.2):
 
 ```ruby
 class Profile < NestedRecord::Base
@@ -60,7 +74,7 @@ class Profile::Contacts < NestedRecord::Base
 end
 ```
 
-`has_many_nested` is also available (note that class namespace for association can be the same level)
+`has_many_nested` is also available (note that class namespace for association can be the same level).
 
 
 ```ruby

@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    nested_record (0.1.0)
+    nested_record (0.1.1)
       rails (~> 5.2)
 
 GEM

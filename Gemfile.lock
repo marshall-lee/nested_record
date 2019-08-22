@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    nested_record (0.1.1)
+    nested_record (1.0.0)
       rails (~> 5.2)
 
 GEM
@@ -73,7 +73,7 @@ GEM
     mini_portile2 (2.4.0)
     minitest (5.11.3)
     nio4r (2.3.1)
-    nokogiri (1.10.3)
+    nokogiri (1.10.4)
       mini_portile2 (~> 2.4.0)
     pry (0.12.2)
       coderay (~> 1.1.0)

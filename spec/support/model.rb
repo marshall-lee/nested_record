@@ -1,20 +1,7 @@
 module TestModel
   def active_model(name, &block)
     let!(:"model_#{name.to_s.gsub('::', '_')}") do
-      test_models = (@test_models ||= [])
-
-      namespace, sname = test_model_dig_name!(name)
-
-      Class.new do
-        namespace.const_set(sname, self)
-        test_models << self
-
-        include ActiveModel::Model
-        include ActiveModel::Attributes
-        include NestedRecord::Macro
-
-        class_eval(&block) if block
-      end
+      new_active_model(name, &block)
     end
   end
 
@@ -36,7 +23,24 @@ module TestModel
     end
   end
 
-  private
+  module Build
+    def new_active_model(name, &block)
+      test_models = (@test_models ||= [])
+
+      namespace, sname = test_model_dig_name!(name)
+
+      Class.new do
+        namespace.const_set(sname, self)
+        test_models << self
+
+        include ActiveModel::Model
+        include ActiveModel::Attributes
+        include NestedRecord::Macro
+
+        class_eval(&block) if block
+      end
+    end
+  end
 
   module Erase
     def erase_test_models

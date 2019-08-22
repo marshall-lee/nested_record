@@ -9,6 +9,7 @@ module NestedRecord
   require 'nested_record/base'
   require 'nested_record/collection'
   require 'nested_record/setup'
+  require 'nested_record/methods'
   require 'nested_record/type'
   require 'nested_record/errors'
   require 'nested_record/lookup_const'

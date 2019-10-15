@@ -4,6 +4,7 @@ class NestedRecord::Base
   include ActiveModel::Model
   include ActiveModel::Attributes
   include ActiveModel::Dirty
+  include ActiveModel::Validations::Callbacks
   include NestedRecord::Macro
 
   class << self
@@ -246,7 +247,17 @@ class NestedRecord::Base
   end
 
   def read_attribute(attr)
-    @attributes.fetch_value(attr.to_s)
+    attribute(attr)
+  end
+
+  def query_attribute(attr)
+    value = read_attribute(attr)
+
+    case value
+    when true        then true
+    when false, nil  then false
+    else !value.blank?
+    end
   end
 
   def match?(attrs)
@@ -256,6 +267,8 @@ class NestedRecord::Base
         is_a? others
       when :_instance_of?, '_instance_of?'
         instance_of? others
+      when :_not_equal?, '_not_equal?'
+        !equal?(others)
       else
         ours = read_attribute(attr)
         if others.is_a? Array
@@ -268,4 +281,11 @@ class NestedRecord::Base
   end
 
   define_model_callbacks :initialize, only: :after
+  attribute_method_suffix '?'
+
+  private
+
+  def attribute?(attr)
+    query_attribute(attr)
+  end
 end

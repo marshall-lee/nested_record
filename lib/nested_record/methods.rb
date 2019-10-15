@@ -5,12 +5,14 @@ class NestedRecord::Methods < Module
 
   def define(name)
     method_name = public_send("#{name}_method_name")
-    method_body = public_send("#{name}_method_body")
+    method_body = (bodym = public_method("#{name}_method_body")).call
     case method_body
     when Proc
       define_method(method_name, &method_body)
     when String
-      module_eval <<~RUBY
+      location = bodym.source_location
+      location[1] += 1
+      module_eval <<~RUBY, *location
         def #{method_name}
           #{method_body}
         end
@@ -18,6 +20,10 @@ class NestedRecord::Methods < Module
     else
       fail
     end
+  end
+
+  def reader_method_name
+    @setup.name
   end
 
   def writer_method_name

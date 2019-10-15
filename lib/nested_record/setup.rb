@@ -8,53 +8,10 @@ class NestedRecord::Setup
     @owner = owner
     @name = name
 
-    if block
-      case (cn = options.fetch(:class_name) { false })
-      when true
-        cn = name.to_s.camelize
-        cn = cn.singularize if self.is_a?(HasMany)
-        class_name = cn
-      when false
-        class_name = nil
-      when String, Symbol
-        class_name = cn.to_s
-      else
-        raise NestedRecord::ConfigurationError, "Bad :class_name option #{cn.inspect}"
-      end
-      @record_class = Class.new(NestedRecord::Base, &block)
-      @owner.const_set(class_name, @record_class) if class_name
-    else
-      if options.key? :class_name
-        case (cn = options.fetch(:class_name))
-        when String, Symbol
-          @record_class = cn.to_s
-        else
-          raise NestedRecord::ConfigurationError, "Bad :class_name option #{cn.inspect}"
-        end
-      else
-        cn = name.to_s.camelize
-        cn = cn.singularize if self.is_a?(HasMany)
-        @record_class = cn
-      end
-    end
-
-    case (aw = options.fetch(:attributes_writer) { {} })
-    when Hash
-      @attributes_writer_opts = aw
-    when true, false
-      @attributes_writer_opts = {}
-    when Symbol
-      @attributes_writer_opts = { strategy: aw }
-    else
-      raise NestedRecord::ConfigurationError, "Bad :attributes_writer option #{aw.inspect}"
-    end
-    @reject_if_proc = @attributes_writer_opts[:reject_if]
-
-    @methods_extension = build_methods_extension
-
-    @owner.attribute @name, type, default: default_value
-    @owner.include @methods_extension
-    @owner.validate @methods_extension.validation_method_name
+    setup_association_attribute
+    setup_record_class(&block)
+    setup_attributes_writer_opts
+    setup_methods_extension
   end
 
   def record_class
@@ -66,6 +23,7 @@ class NestedRecord::Setup
 
   def primary_key
     return @primary_key if defined? @primary_key
+
     @primary_key = Array(@options[:primary_key])
     if @primary_key.empty?
       @primary_key = nil
@@ -77,6 +35,7 @@ class NestedRecord::Setup
 
   def attributes_writer_strategy
     return unless @options.fetch(:attributes_writer) { true }
+
     case (strategy = @attributes_writer_opts.fetch(:strategy) { :upsert })
     when :rewrite, :upsert
       return strategy
@@ -85,7 +44,91 @@ class NestedRecord::Setup
     end
   end
 
+  def primary_check(type)
+    if (pkey_attributes = primary_key)
+      klass = record_class
+    else
+      klass = record_class.find_subtype(type)
+      while !(pkey_attributes = klass.primary_key) && (klass < NestedRecord::Base)
+        klass = klass.superclass
+      end
+    end
+    # TODO: cache this
+    NestedRecord::PrimaryKeyCheck.new(klass, pkey_attributes) if pkey_attributes
+  end
+
   private
+
+  def setup_association_attribute
+    @owner.attribute name, type, default: default_value
+  end
+
+  def setup_record_class(&block)
+    if block
+      define_local_record_class(&block)
+    else
+      link_existing_record_class
+    end
+  end
+
+  def define_local_record_class(&block)
+    case (cn = @options.fetch(:class_name) { false })
+    when true
+      class_name = infer_record_class_name
+    when false
+      class_name = nil
+    when String, Symbol
+      class_name = cn.to_s
+    else
+      raise NestedRecord::ConfigurationError, "Bad :class_name option #{cn.inspect}"
+    end
+    @record_class = Class.new(NestedRecord::Base, &block)
+    @owner.const_set(class_name, @record_class) if class_name
+  end
+
+  def link_existing_record_class
+    if @options.key? :class_name
+      case (cn = @options.fetch(:class_name))
+      when String, Symbol
+        @record_class = cn.to_s
+      else
+        raise NestedRecord::ConfigurationError, "Bad :class_name option #{cn.inspect}"
+      end
+    else
+      @record_class = infer_record_class_name
+    end
+  end
+
+  def infer_record_class_name
+    cn = name.to_s.camelize
+    cn = cn.singularize if self.is_a?(HasMany)
+    cn
+  end
+
+  def setup_attributes_writer_opts
+    case (aw = @options.fetch(:attributes_writer) { {} })
+    when Hash
+      @attributes_writer_opts = aw
+    when true, false
+      @attributes_writer_opts = {}
+    when Symbol
+      @attributes_writer_opts = { strategy: aw }
+    else
+      raise NestedRecord::ConfigurationError, "Bad :attributes_writer option #{aw.inspect}"
+    end
+    @reject_if_proc = @attributes_writer_opts[:reject_if]
+  end
+
+  def setup_methods_extension
+    methods_extension = build_methods_extension
+    @owner.include methods_extension
+    @owner.const_set methods_extension_module_name, methods_extension
+    @owner.validate methods_extension.validation_method_name
+  end
+
+  def methods_extension_module_name
+    @methods_extension_module_name ||= :"NestedRecord_#{self.class.name.demodulize}_#{name.to_s.camelize}"
+  end
 
   class HasMany < self
     def type
@@ -96,10 +139,23 @@ class NestedRecord::Setup
       record_class.collection_class
     end
 
+    def collection_proxy_class
+      return @owner.const_get(collection_proxy_class_name, false) if @owner.const_defined?(collection_proxy_class_name, false)
+
+      @owner.const_set(
+        collection_proxy_class_name,
+        ::NestedRecord::CollectionProxy.subclass_for(self)
+      )
+    end
+
+    def collection_proxy_class_name
+      @collection_proxy_class_name ||= :"NestedRecord_#{self.class.name.demodulize}_#{name.to_s.camelize}_CollectionProxy"
+    end
+
     private
 
     def default_value
-      []
+      @options.fetch(:default) { [] }
     end
 
     def build_methods_extension
@@ -115,7 +171,7 @@ class NestedRecord::Setup
     private
 
     def default_value
-      nil
+      @options.fetch(:default) { nil }
     end
 
     def build_methods_extension

@@ -325,6 +325,27 @@ RSpec.describe NestedRecord do
         foo.bars = []
         expect(foo.bars).to be_empty
       end
+
+      it 'raises an error if primary key is violated' do
+        foo = Foo.new
+        expect { foo.bars = [Bar.new(id: 'wow'), Bar.new(id: 'wow')] }.to raise_error(NestedRecord::PrimaryKeyError)
+      end
+    end
+
+    describe 'build method' do
+      it 'builds a new record' do
+        foo = Foo.new
+        foo.bars.build(x: 'xx')
+        expect(foo.bars).to match [
+          an_object_having_attributes(x: 'xx')
+        ]
+      end
+
+      it 'raises an error if primary key is violated' do
+        foo = Foo.new
+        foo.bars.build(id: 'wow')
+        expect { foo.bars.build(id: 'wow') }.to raise_error(NestedRecord::PrimaryKeyError)
+      end
     end
 
     describe 'attributes writer' do
@@ -629,6 +650,111 @@ RSpec.describe NestedRecord do
       it 'locates the nested model' do
         foo = A::B::Foo.new(bar_attributes: {})
         expect(foo.bar).to be_an_instance_of(A::Bar)
+      end
+    end
+  end
+
+  describe 'nested_accessors' do
+    active_model(:Foo) do
+      nested_accessors from: :bar, class_name: true do
+        attribute :x, :integer
+        has_one_nested :one, class_name: true do
+          attribute :y, :integer
+        end
+        has_many_nested :things, class_name: true, attributes_writer: { strategy: :rewrite } do
+          attribute :z, :integer
+        end
+      end
+    end
+
+    it 'delegates attributes writers to the inner attribute' do
+      foo = Foo.new(
+        x: 1,
+        one_attributes: { y: 2 },
+        things_attributes: [{ z: 3 }, { z: 4 }]
+      )
+      expect(foo.bar).to match an_object_having_attributes(
+        x: 1,
+        one: an_object_having_attributes(
+          y: 2
+        ),
+        things: [
+          an_object_having_attributes(z: 3),
+          an_object_having_attributes(z: 4)
+        ]
+      )
+    end
+
+    it 'delegates readers to the inner attribute' do
+      foo = Foo.new(
+        x: 1,
+        one_attributes: { y: 2 },
+        things_attributes: [{ z: 3 }, { z: 4 }]
+      )
+      expect(foo).to match an_object_having_attributes(
+        x: 1,
+        one: an_object_having_attributes(
+          y: 2
+        ),
+        things: [
+          an_object_having_attributes(z: 3),
+          an_object_having_attributes(z: 4)
+        ]
+      )
+    end
+
+    it 'delegates writers for associations' do
+      foo = Foo.new(x: 1)
+      foo.one = Foo::Bar::One.new(y: 2)
+      foo.things = [Foo::Bar::Thing.new(z: 3), Foo::Bar::Thing.new(z: 4)]
+      expect(foo.bar).to match an_object_having_attributes(
+        x: 1,
+        one: an_object_having_attributes(
+          y: 2
+        ),
+        things: [
+          an_object_having_attributes(z: 3),
+          an_object_having_attributes(z: 4)
+        ]
+      )
+    end
+
+    context 'with concerns' do
+      nested_concern(:X) { attribute :x, :integer }
+      nested_concern(:Y) do
+        has_one_nested :one, class_name: true do
+          attribute :y, :integer
+        end
+      end
+      nested_concern(:Z) do
+        has_many_nested :things, class_name: true, attributes_writer: { strategy: :rewrite } do
+          attribute :z, :integer
+        end
+      end
+      active_model(:FooXYZ) do
+        nested_accessors from: :bar, class_name: true do
+          include X
+          include Y
+          include Z
+        end
+      end
+
+      it 'delegates methods from included modules' do
+        foo = FooXYZ.new(
+          x: 1,
+          one_attributes: { y: 2 },
+          things_attributes: [{ z: 3 }, { z: 4 }]
+        )
+        expect(foo).to match an_object_having_attributes(
+          x: 1,
+          one: an_object_having_attributes(
+            y: 2
+          ),
+          things: [
+            an_object_having_attributes(z: 3),
+            an_object_having_attributes(z: 4)
+          ]
+        )
       end
     end
   end

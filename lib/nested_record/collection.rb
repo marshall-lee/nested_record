@@ -42,6 +42,7 @@ class NestedRecord::Collection
 
   def build(attributes = {})
     record_class.new(attributes).tap do |obj|
+      yield obj if block_given?
       self << obj
     end
   end
@@ -110,14 +111,19 @@ class NestedRecord::Collection
     RUBY
   end
 
+  def exists?(attrs)
+    attrs = attrs.stringify_keys
+    any? { |obj| obj.match?(attrs) }
+  end
+
   def find_by(attrs)
     attrs = attrs.stringify_keys
     find { |obj| obj.match?(attrs) }
   end
 
-  def find_or_initialize_by(attrs)
+  def find_or_initialize_by(attrs, &block)
     attrs = attrs.stringify_keys
-    find_by(attrs) || build(attrs)
+    find_by(attrs) || build(attrs, &block)
   end
 
   private

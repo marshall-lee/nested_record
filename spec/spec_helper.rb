@@ -19,5 +19,5 @@ RSpec.configure do |config|
   config.include TestModel::Build
   config.include TestModel::Erase
 
-  config.after(:example) { erase_test_models }
+  config.after(:example) { erase_test_consts }
 end

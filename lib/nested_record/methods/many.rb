@@ -2,6 +2,7 @@ class NestedRecord::Methods
   class Many < self
     def initialize(setup)
       super
+      define :reader
       define :writer
       define :rewrite_attributes
       define :upsert_attributes
@@ -13,13 +14,30 @@ class NestedRecord::Methods
       :"validate_associated_records_for_#{@setup.name}"
     end
 
+    def reader_method_body
+      setup = @setup
+      ivar = :"@_#{@setup.name}_collection_proxy"
+      proc do
+        instance_variable_get(ivar) || instance_variable_set(ivar, setup.collection_proxy_class.new(self))
+      end
+    end
+
     def writer_method_body
       setup = @setup
       proc do |records|
         collection_class = setup.collection_class
-        return super(records.dup) if records.is_a? collection_class
-        collection = collection_class.new
-        records.each { |obj| collection << obj }
+        if records.is_a? collection_class
+          collection = records.dup
+        else
+          collection = collection_class.new
+          records.each { |record| collection << record }
+        end
+        collection.group_by { |record| setup.primary_check(record.read_attribute('type')) }.each do |check, records|
+          next unless check
+          records.each do |record|
+            check.perform!(collection, record)
+          end
+        end
         super(collection)
       end
     end
@@ -39,29 +57,17 @@ class NestedRecord::Methods
           attributes = attributes.stringify_keys
           next if setup.reject_if_proc&.call(attributes)
 
-          if (pkey_attributes = setup.primary_key)
-            klass = setup.record_class
-          else
-            klass = setup.record_class.find_subtype(attributes['type'])
-            while !(pkey_attributes = klass.primary_key) && (klass < NestedRecord::Base)
-              klass = klass.superclass
-            end
-            unless pkey_attributes
-              raise NestedRecord::ConfigurationError, 'You should specify a primary_key when using :upsert strategy'
-            end
+          pkey_check = setup.primary_check(attributes['type'])
+          unless pkey_check
+            raise NestedRecord::ConfigurationError, 'You should specify a primary_key when using :upsert strategy'
           end
-          key = { _is_a?: klass }
-          pkey_attributes.each do |name|
-            value = attributes[name]
-            if (type = klass.type_for_attribute(name))
-              value = type.cast(value)
-            end
-            key[name] = value
-          end
-          if (record = collection.find_by(key))
+
+          pkey = pkey_check.build_pkey(attributes)
+
+          if (record = collection.find_by(pkey))
             record.assign_attributes(attributes)
           else
-            collection.build(attributes)
+            collection.__build__(attributes)
           end
         end
       end

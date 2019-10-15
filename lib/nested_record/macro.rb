@@ -11,5 +11,9 @@ module NestedRecord::Macro
     def has_one_nested(name, **options, &block)
       NestedRecord::Setup::HasOne.new(self, name, **options, &block)
     end
+
+    def nested_accessors(from:, **options, &block)
+      NestedRecord::NestedAccessorsSetup.new(self, from, **options, &block)
+    end
   end
 end

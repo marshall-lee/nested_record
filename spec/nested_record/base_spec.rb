@@ -257,6 +257,33 @@ RSpec.describe NestedRecord::Base do
     end
   end
 
+  describe '#query_attribute' do
+    it 'returns true if boolean attribute is true' do
+      expect(Foo.new(z: true).query_attribute(:z)).to eq true
+    end
+
+    it 'returns true if boolean attribute is false' do
+      expect(Foo.new(z: false).query_attribute(:z)).to eq false
+    end
+
+    it 'returns true if string attribute is non-blank' do
+      expect(Foo.new(x: 'a').query_attribute(:x)).to eq true
+    end
+
+    it 'returns false if string attribute is blank' do
+      expect(Foo.new(x: '').query_attribute(:x)).to eq false
+    end
+
+    it 'works with suffix ? version' do
+      foo = Foo.new(x: '1', z: false)
+      expect(foo.x?).to eq true
+      expect(foo.z?).to eq false
+      foo = Foo.new(x: '', z: true)
+      expect(foo.x?).to eq false
+      expect(foo.z?).to eq true
+    end
+  end
+
   describe '#match?' do
     let(:record) { Foo.new(x: 'aa', y: 123, z: true) }
 

@@ -42,6 +42,7 @@ class NestedRecord::Collection
 
   def build(attributes = {})
     record_class.new(attributes).tap do |obj|
+      yield obj if block_given?
       self << obj
     end
   end
@@ -86,9 +87,33 @@ class NestedRecord::Collection
   end
 
   def reject_by!(attrs)
-    return to_enum(:reject_by!) unless block_given?
     attrs = attrs.stringify_keys
     reject! { |obj| obj.match?(attrs) }
+  end
+
+  def select
+    if block_given?
+      dup.select! { |obj| yield obj }
+    else
+      to_enum(:select)
+    end
+  end
+
+  %i[select reject sort_by].each do |meth|
+    class_eval <<~RUBY, __FILE__, __LINE__ + 1
+      def #{meth}
+        if block_given?
+          dup.#{meth}! { |obj| yield obj }
+        else
+          to_enum(:#{meth})
+        end
+      end
+    RUBY
+  end
+
+  def exists?(attrs)
+    attrs = attrs.stringify_keys
+    any? { |obj| obj.match?(attrs) }
   end
 
   def find_by(attrs)
@@ -96,9 +121,9 @@ class NestedRecord::Collection
     find { |obj| obj.match?(attrs) }
   end
 
-  def find_or_initialize_by(attrs)
+  def find_or_initialize_by(attrs, &block)
     attrs = attrs.stringify_keys
-    find_by(attrs) || build(attrs)
+    find_by(attrs) || build(attrs, &block)
   end
 
   private

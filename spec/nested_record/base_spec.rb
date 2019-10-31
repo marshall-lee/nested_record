@@ -58,6 +58,20 @@ RSpec.describe NestedRecord::Base do
   end
 
   describe '.new' do
+    context 'with after_initialize callbacks' do
+      nested_model(:Foo) do
+        attribute :x, :integer
+        attribute :y, :integer
+        attribute :z, :integer
+
+        after_initialize { self.z = 1234 }
+      end
+
+      it 'calls them' do
+        expect(Foo.new(x: 1, y: 2)).to match an_object_having_attributes(x: 1, y: 2, z: 1234)
+      end
+    end
+
     context 'with inheritance' do
       nested_model(:Bar)
       nested_model(:Foo, :Bar)
@@ -80,21 +94,21 @@ RSpec.describe NestedRecord::Base do
         expect { Bar.new(type: 'Buzz') }.to raise_error(NestedRecord::InvalidTypeError)
       end
 
-      context 'with namespaced models and inherited_types full: true' do
+      context 'with namespaced models and subtypes full: true' do
         nested_model('A::Bar') do
-          inherited_types full: true
+          subtypes full: true
         end
         nested_model('A::Foo', 'A::Bar')
 
         it 'looks up for a subclass globally' do
-          expect(A::Bar.new(type: 'A::Foo')).to be_an_instance_of(A::Foo)
+         expect(A::Bar.new(type: 'A::Foo')).to be_an_instance_of(A::Foo)
           expect { A::Bar.new(type: 'Foo') }.to raise_error(NestedRecord::InvalidTypeError)
         end
       end
 
-      context 'with namespaced models and inherited_types full: false' do
+      context 'with namespaced models and subtypes full: false' do
         nested_model('A::Bar') do
-          inherited_types full: false
+          subtypes full: false
         end
         nested_model('A::Foo', 'A::Bar')
 
@@ -104,9 +118,9 @@ RSpec.describe NestedRecord::Base do
         end
       end
 
-      context 'with inherited_types :namespace option' do
+      context 'with subtypes :namespace option' do
         nested_model('A::Bar') do
-          inherited_types namespace: 'A::Bars'
+          subtypes namespace: 'A::Bars'
         end
         nested_model('A::Bars::Foo', 'A::Bar')
         nested_model('A::Foo', 'A::Bar')
@@ -124,9 +138,9 @@ RSpec.describe NestedRecord::Base do
         end
       end
 
-      context 'with inherited_types underscored: true' do
+      context 'with subtypes underscored: true' do
         nested_model('A::Bar') do
-          inherited_types underscored: true, full: false
+          subtypes underscored: true, full: false
         end
         nested_model('A::Bar::Foo', 'A::Bar')
 
@@ -138,6 +152,89 @@ RSpec.describe NestedRecord::Base do
           expect(A::Bar::Foo.new.type).to eq 'a/bar/foo'
         end
       end
+
+      context 'with local subtypes' do
+        nested_model('Baz') do
+          subtypes underscored: true
+          attribute :x, :integer
+
+          subtype :foo do
+            attribute :y, :integer
+          end
+
+          subtype :bar do
+            attribute :z, :integer
+          end
+        end
+
+        it 'looks up local subtypes' do
+          foo = Baz.new(type: 'foo', x: 1, y: 2)
+          bar = Baz.new(type: 'bar', x: 1, z: 3)
+          expect(foo).to be_an_instance_of Baz::LocalTypes::Foo
+          expect(bar).to be_an_instance_of Baz::LocalTypes::Bar
+          expect(foo).to match an_object_having_attributes(x: 1, y: 2)
+          expect(bar).to match an_object_having_attributes(x: 1, z: 3)
+        end
+
+        it 'sets a local type when called on subtypes' do
+          expect(Baz::LocalTypes::Foo.new).to match an_object_having_attributes(type: 'foo')
+          expect(Baz::LocalTypes::Bar.new).to match an_object_having_attributes(type: 'bar')
+        end
+      end
+
+      context 'with local subtypes in anonymous records' do
+        nested_model('Baz') do
+          has_one_nested :aux do
+            subtypes underscored: true
+            attribute :x, :integer
+
+            subtype :foo do
+              attribute :y, :integer
+            end
+
+            subtype :bar do
+              attribute :z, :integer
+            end
+          end
+        end
+
+        it 'looks up local subtypes' do
+          baz = Baz.new
+          foo = baz.build_aux(type: 'foo', x: 1, y: 2)
+          expect(foo).to match an_object_having_attributes(x: 1, y: 2)
+          bar = baz.build_aux(type: 'bar', x: 1, z: 3)
+          expect(bar).to match an_object_having_attributes(x: 1, z: 3)
+        end
+      end
+    end
+  end
+
+  describe '.instantiate' do
+    context 'with after_initialize callbacks' do
+      nested_model(:Foo) do
+        attribute :x, :integer
+        attribute :y, :integer
+        attribute :z, :integer
+
+        after_initialize { self.z = 1234 }
+      end
+
+      it 'calls them' do
+        expect(Foo.instantiate('x' => 1, 'y' => 2)).to match an_object_having_attributes(x: 1, y: 2, z: 1234)
+      end
+    end
+  end
+
+  describe '.subtype' do
+    nested_model('Baz') do
+      subtype :foo
+      subtype :bar
+    end
+
+    it 'defines subclasses in Subtypes namespace' do
+      expect(Baz::LocalTypes).to be_an_instance_of Module
+      expect(Baz::LocalTypes::Foo).to be < Baz
+      expect(Baz::LocalTypes::Bar).to be < Baz
     end
   end
 
@@ -157,6 +254,33 @@ RSpec.describe NestedRecord::Base do
     it 'returns nil for unknown attributes' do
       foo = Foo.new(x: 'aa')
       expect(foo.read_attribute(:lol)).to be nil
+    end
+  end
+
+  describe '#query_attribute' do
+    it 'returns true if boolean attribute is true' do
+      expect(Foo.new(z: true).query_attribute(:z)).to eq true
+    end
+
+    it 'returns true if boolean attribute is false' do
+      expect(Foo.new(z: false).query_attribute(:z)).to eq false
+    end
+
+    it 'returns true if string attribute is non-blank' do
+      expect(Foo.new(x: 'a').query_attribute(:x)).to eq true
+    end
+
+    it 'returns false if string attribute is blank' do
+      expect(Foo.new(x: '').query_attribute(:x)).to eq false
+    end
+
+    it 'works with suffix ? version' do
+      foo = Foo.new(x: '1', z: false)
+      expect(foo.x?).to eq true
+      expect(foo.z?).to eq false
+      foo = Foo.new(x: '', z: true)
+      expect(foo.x?).to eq false
+      expect(foo.z?).to eq true
     end
   end
 

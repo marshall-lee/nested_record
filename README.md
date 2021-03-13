@@ -105,6 +105,124 @@ user.profile_attributes = {
 }
 ```
 
+## Advanced usage
+
+`nested_record` can do many different things for you!
+
+### Validations
+
+Every `NestedRecord::Base` descendant in fact is an `ActiveModel::Model` so standard validations are also supported.
+
+```ruby
+class Profile < NestedRecord::Base
+  attribute :age,    :integer
+  attribute :active, :boolean
+
+  validates :age, presence: true
+end
+```
+
+### Don't bother with defining record micro-classes
+
+If you want so, you can rewrite the above example this way:
+
+```ruby
+class User < ApplicationRecord
+  has_one_nested :profile do
+    attribute :age, :integer
+    attribute :active, :boolean
+    has_one_nested :contacts do
+      attribute :email, :string
+      attribute :phone, :string
+      has_many_nested :socials do
+        attribute :name
+        attribute :url
+      end
+    end
+  end
+end
+```
+
+Record classes then available under _local types_ namespace module e.g. `User::LocalTypes::Profile`.
+
+### Concerns
+
+Common attributes, validations and other settings can be DRY-ed to modules called _concerns_.
+
+```ruby
+module TitleAndDescription
+  extend NestedRecord::Concern
+  
+  attribute :title
+  attribute :description
+  
+  validates :title, presence: true
+end
+
+class Article < NestedRecord::Base
+  has_one_nested :foo do
+    include TitleAndDescription
+  end
+end
+```
+
+### `:class_name` option
+
+By default, class name of nested record is automatically inferred from the association name but of course it's all customizable. There's a `:class_name` option for this!
+
+Depending on what form do you use — `has_* :foo` or `has_* :foo do ... end`, the `:class_name` option means different things.
+
+#### `:class_name` option when referring an external model
+
+In a non-`&block` form, the `:class_name` behaves similar to the option with same name in ActiveRecord's `has_one`/`has_many` associations.
+
+```ruby
+class User < ApplicationRecord
+  has_one_nested :profile, class_name: 'SomeNamespace::Profile'
+end
+
+class SomeNamespace::Profile < NestedRecord::Base
+  attribute :age, :integer
+  attribute :active, :boolean
+end
+```
+
+#### `:class_name` option when using with an embedded _local types_
+
+When record definition is embedded, `:class_name` option denotes the name of the class in _local types_ namespace module under which it's defined.
+
+```ruby
+class User < ApplicationRecord
+  has_one_nested :profile, class_name: 'ProfileRecord' do
+    attribute :age, :integer
+    attribute :active, :boolean
+  end
+end
+```
+
+Then the profile model is available under `User::LocalTypes::ProfileRecord` name.
+
+You can also disable the const naming at all, passing `class_name: false`. In this case, the _local type_ is anonymous so no constant in _local types_ namespace is set.
+
+`class_name: true` (the default) means infer the class name from association name e.g. `User::LocalTypes::Profile` constant is set by default.
+
+### `nested_accessors`
+
+This is the `store_accessor` on steroids! Unlike `store_accessor` it's support nesting, type coercions and all other things this library can do. Think of it as a `has_one_nested` association with accessors lifted up one level.
+
+```ruby
+class User < ApplicationRecord
+  nested_accessors from: :profile do
+    attribute :age, :integer
+    attribute :active, :integer
+  end
+end
+
+user = User.new
+user.age = 33
+user.active = true
+```
+
 ## Development
 
 After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake spec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.

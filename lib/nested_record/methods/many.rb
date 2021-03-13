@@ -95,24 +95,40 @@ class NestedRecord::Methods
 
     def validation_method_body
       name = @setup.name
-      proc do
-        collection = public_send(name)
-        collection.map.with_index do |record, index|
-          next true if record.valid?
-          record.errors.each do |attribute, message|
-            error_attribute = "#{name}[#{index}].#{attribute}"
-            errors[error_attribute] << message
-            errors[error_attribute].uniq!
-          end
-          record.errors.details.each_key do |attribute|
-            error_attribute = "#{name}[#{index}].#{attribute}"
-            record.errors.details[attribute].each do |error|
-              errors.details[error_attribute] << error
-              errors.details[error_attribute].uniq!
+      if ActiveModel::VERSION::MAJOR < 6 || (ActiveModel::VERSION::MAJOR == 6 && ActiveModel::VERSION::MINOR < 1)
+        proc do
+          collection = public_send(name)
+          collection.map.with_index do |record, index|
+            next true if record.valid?
+            record.errors.each do |attribute, message|
+              error_attribute = "#{name}[#{index}].#{attribute}"
+              errors[error_attribute] << message
+              errors[error_attribute].uniq!
             end
-          end
-          false
-        end.all?
+            record.errors.details.each_key do |attribute|
+              error_attribute = "#{name}[#{index}].#{attribute}"
+              record.errors.details[attribute].each do |error|
+                errors.details[error_attribute] << error
+                errors.details[error_attribute].uniq!
+              end
+            end
+            false
+          end.all?
+        end
+      else
+        proc do
+          collection = public_send(name)
+          collection.map.with_index do |record, index|
+            next true if record.valid?
+            record.errors.group_by_attribute.each do |attribute, errors|
+              error_attribute = "#{name}[#{index}].#{attribute}"
+              errors.each do |error|
+                self.errors.import(error, attribute: error_attribute)
+              end
+            end
+            false
+          end.all?
+        end
       end
     end
   end

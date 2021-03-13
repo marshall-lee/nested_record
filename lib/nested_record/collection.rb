@@ -21,7 +21,7 @@ class NestedRecord::Collection
 
   def each
     return to_enum(:each) unless block_given?
-    @ary.each(&proc)
+    @ary.each { |obj| yield obj }
   end
 
   def to_ary
@@ -70,19 +70,19 @@ class NestedRecord::Collection
 
   def select!
     return to_enum(:select!) unless block_given?
-    @ary.select!(&proc)
+    @ary.select! { |obj| yield obj }
     self
   end
 
   def reject!
     return to_enum(:reject!) unless block_given?
-    @ary.reject!(&proc)
+    @ary.reject! { |obj| yield obj }
     self
   end
 
   def sort_by!
     return to_enum(:sort_by!) unless block_given?
-    @ary.sort_by!(&proc)
+    @ary.sort_by! { |obj| yield obj }
     self
   end
 

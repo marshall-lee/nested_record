@@ -3,9 +3,10 @@ module NestedRecord
 
   require 'forwardable'
 
-  require 'active_record'
+  require 'active_model'
   require 'active_support/dependencies'
   require 'active_support/concern'
+  require 'active_support/json'
 
   require 'nested_record/macro'
   require 'nested_record/base'

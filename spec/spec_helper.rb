@@ -1,6 +1,5 @@
 require 'bundler/setup'
 require 'nested_record'
-require 'pry'
 
 Dir[File.join(__dir__, 'support/**/*.rb')].each { |f| require f }
 

@@ -247,7 +247,9 @@ class NestedRecord::Base
   end
 
   def read_attribute(attr)
-    attribute(attr)
+    name = attr.to_s
+    name = self.class.attribute_aliases[name] || name
+    @attributes.fetch_value(name)
   end
 
   def query_attribute(attr)

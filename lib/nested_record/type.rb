@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-class NestedRecord::Type < ActiveRecord::Type::Json
+class NestedRecord::Type < ActiveModel::Type::Value
   require 'nested_record/type/many'
   require 'nested_record/type/one'
 
@@ -13,11 +13,16 @@ class NestedRecord::Type < ActiveRecord::Type::Json
   end
 
   def deserialize(value)
-    cast_value(super)
+    value = if value.is_a?(::String)
+      ActiveSupport::JSON.decode(value) rescue nil
+    else
+      value
+    end
+    cast_value(value)
   end
 
   def serialize(obj)
-    super(obj&.as_json)
+    ActiveSupport::JSON.encode(obj.as_json) unless obj.nil?
   end
 
   private

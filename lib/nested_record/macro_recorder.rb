@@ -28,16 +28,20 @@ class NestedRecord::MacroRecorder
     after_initialize
     before_validation after_validation
   ].freeze.each do |meth|
-    define_method(meth) do |*args, &block|
-      @macros << [meth, args, block]
+    define_method(meth) do |*args, **kwargs, &block|
+      @macros << [meth, args, kwargs, block]
     end
   end
 
   def apply_to(mod_or_class)
     macros = @macros
     mod_or_class.module_eval do
-      macros.each do |meth, args, block|
-        public_send(meth, *args, &block)
+      macros.each do |meth, args, kwargs, block|
+        if kwargs.empty?
+          public_send(meth, *args, &block)
+        else
+          public_send(meth, *args, **kwargs, &block)
+        end
       end
     end
   end

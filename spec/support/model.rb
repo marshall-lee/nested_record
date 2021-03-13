@@ -53,7 +53,7 @@ module TestModel
         include NestedRecord::Macro
 
         def read_attribute(attr)
-          attribute(attr)
+          attribute(attr.to_s)
         end
 
         class_eval(&block) if block

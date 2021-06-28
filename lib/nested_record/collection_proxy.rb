@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class NestedRecord::CollectionProxy
   extend Forwardable
   include Enumerable

@@ -5,6 +5,7 @@ module NestedRecord
 
   require 'active_model'
   require 'active_support/dependencies'
+  require 'active_support/inflector'
   require 'active_support/concern'
   require 'active_support/json'
 

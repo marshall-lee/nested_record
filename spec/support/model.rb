@@ -64,9 +64,19 @@ module TestModel
   module Erase
     def erase_test_consts
       Array(@test_consts).reverse_each do |klass|
-        ActiveSupport::Dependencies.remove_constant(klass.name)
+        remove_constant(klass.name)
       end
-      ActiveSupport::Dependencies.clear
+      ActiveSupport::Dependencies.clear unless zeitwerk?
+    end
+
+    def remove_constant(klass_name)
+      if ActiveSupport::Dependencies.respond_to?(:remove_constant)
+        ActiveSupport::Dependencies.remove_constant(klass_name)
+      else
+        base, _, object = klass_name.to_s.rpartition('::')
+        base = base.empty? ? Object : NestedRecord.constantize(base)
+        base.send :remove_const, object
+      end
     end
 
     def test_const_dig_name!(name)
@@ -84,6 +94,10 @@ module TestModel
         end
       end
       [namespace, name]
+    end
+
+    def zeitwerk?
+      ActiveSupport::VERSION::MAJOR >= 7
     end
   end
 end

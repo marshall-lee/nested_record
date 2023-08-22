@@ -143,11 +143,11 @@ class NestedRecord::Base
       subclass ||=
         begin
           if type_name.start_with?('::')
-            ActiveSupport::Dependencies.constantize(type_name)
+            NestedRecord.constantize(type_name)
           elsif subtypes_store_full?
-            ActiveSupport::Dependencies.constantize(type_name)
+            NestedRecord.constantize(type_name)
           elsif subtypes_namespace
-            ActiveSupport::Dependencies.safe_constantize("#{subtypes_namespace}::#{type_name}") || ActiveSupport::Dependencies.constantize(type_name)
+            NestedRecord.safe_constantize("#{subtypes_namespace}::#{type_name}") || NestedRecord.constantize(type_name)
           else
             NestedRecord.lookup_const(self, type_name)
           end

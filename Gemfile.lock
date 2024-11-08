@@ -2,7 +2,7 @@ PATH
   remote: .
   specs:
     nested_record (1.1.2)
-      activemodel (> 5.2, < 8.0)
+      activemodel (> 7.0, < 8.1)
 
 GEM
   remote: https://rubygems.org/

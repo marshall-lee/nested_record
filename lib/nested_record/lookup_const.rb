@@ -1,23 +1,12 @@
 # frozen_string_literal: true
 
 module NestedRecord
-  # TODO: Remove this when we drop support for Rails < 7.0
-  if ActiveSupport::VERSION::MAJOR < 7
-    def self.constantize(type_name)
-      ActiveSupport::Dependencies.constantize(type_name)
-    end
+  def self.constantize(type_name)
+    type_name.constantize
+  end
 
-    def self.safe_constantize(type_name)
-      ActiveSupport::Dependencies.safe_constantize(type_name)
-    end
-  else
-    def self.constantize(type_name)
-      type_name.constantize
-    end
-
-    def self.safe_constantize(type_name)
-      type_name.safe_constantize
-    end
+  def self.safe_constantize(type_name)
+    type_name.safe_constantize
   end
 
   # Derived from Rails source: https://github.com/rails/rails/blob/98a57aa5f610bc66af31af409c72173cdeeb3c9e/activerecord/lib/active_record/inheritance.rb#L181-L207

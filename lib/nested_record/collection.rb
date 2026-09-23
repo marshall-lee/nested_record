@@ -29,7 +29,7 @@ class NestedRecord::Collection
   end
 
   def ==(other)
-    @ary == other.to_ary
+    other.respond_to?(:to_ary) && @ary == other.to_ary
   end
 
   def <<(obj)

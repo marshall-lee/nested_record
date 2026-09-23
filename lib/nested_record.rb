@@ -10,6 +10,7 @@ module NestedRecord
   require 'active_support/json'
 
   require 'nested_record/macro'
+  require 'nested_record/multiparameter_attributes'
   require 'nested_record/base'
   require 'nested_record/collection'
   require 'nested_record/collection_proxy'

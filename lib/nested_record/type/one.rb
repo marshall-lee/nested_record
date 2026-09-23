@@ -1,5 +1,9 @@
 class NestedRecord::Type
   class One < self
+    def deep_copy(record)
+      record.dup
+    end
+
     private
 
     def cast_value(obj)

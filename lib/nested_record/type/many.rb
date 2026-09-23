@@ -1,5 +1,11 @@
 class NestedRecord::Type
   class Many < self
+    def deep_copy(collection)
+      collection_class.new.tap do |copy|
+        collection.each { |record| copy << record.dup }
+      end
+    end
+
     private
 
     def collection_class

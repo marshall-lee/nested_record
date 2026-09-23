@@ -6,6 +6,7 @@ class NestedRecord::Base
   include ActiveModel::Dirty
   include ActiveModel::Validations::Callbacks
   include NestedRecord::Macro
+  include NestedRecord::MultiparameterAttributes
 
   class << self
     include ActiveModel::Callbacks
@@ -234,7 +235,7 @@ class NestedRecord::Base
   end
 
   def ==(other)
-    attributes == other.attributes
+    other.is_a?(NestedRecord::Base) && attributes == other.attributes
   end
 
   def as_json
